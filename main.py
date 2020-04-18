@@ -12,6 +12,7 @@ import pymunk
 #from pymunk.pyglet_util import DrawOptions
 import threading
 import math
+import random
 
 #check if mouse is overlapping sprite
 def mouse_on_sprite(sprite, x, y, player):
@@ -28,7 +29,7 @@ def reset(arbiter, space, data):
 	objective.position = (window.width-objective.width, window.height-objective.height);
 	objective.body.position = objective.position;
 	for player in players.values():
-		player.body.position = (640, 360);
+		player.body.position = (random.random(window.width-64), random.random(window.height-64));
 		player.body._set_velocity((0,0));
 	for obstacle in obstacles:
 		space.remove(obstacle.shape);
@@ -113,7 +114,7 @@ class newLayer(cocos.layer.Layer):
 	def on_key_press(self, symbol, modifiers):
 		if symbol == 32:
 			for player in players.values():
-				player.body.position = (640, 360);
+				player.body.position = (random.random(window.width-64), random.random(window.height-64));
 				player.body._set_velocity((0,0));
 
 #add new player from twitch chat
@@ -121,9 +122,9 @@ def create_user(user):
 	players[user] = playerSprite(user);
 	game_scene.add(players[user]);
 	game_scene.add(players[user].label);
-	players[user].body.position = (640, 360);
+	players[user].body.position = (random.random(window.width-64), random.random(window.height-64));
 	space.add(players[user].shape, players[user].body);
-	handler.data[players[user].shape] = user;
+	handler.data[players[user].shape] = user; #store the name of the player inside the collision handler data
 
 #take input from player from twitch chat
 def game_input(user, input):
@@ -136,6 +137,12 @@ def game_input(user, input):
 	elif(input == "right"):
 		#players[user].body.apply_impulse_at_local_point(Vec2d.unit()*500, (-1*players[user].width, 0));
 		players[user].body._set_velocity((200, 0));
+	elif(input == "jumpleft"):
+		players[user].body._set_velocity((-200, 500));
+	elif(input == "jumpright"):
+		players[user].body._set_velocity((200, 500));
+	elif(input == "random"):
+		players[user].body._set_velocity((random.randrange(-1000, 1000), random.random(1000)));
 
 #handle twitch networking in separate thread to speed up performance
 def twitch_thread():
@@ -147,7 +154,7 @@ def update(dt):
 	global time;
 	global t1;
 	#Check for new mesasages
-	if time > 1:
+	if time > timeout:
 		t1.join();
 		if new_messages:
 			for message in new_messages:
@@ -175,7 +182,7 @@ def update(dt):
 		player.rotation = (player.body.angle*180.0)/math.pi; #convert radians to degrees
 		player.label.position = (player.x, player.y+player.height);
 		if not bound_box.contains_vect(player.body.position):
-			player.body.position = (640, 360);
+			player.body.position = (random.random(window.width-64), random.random(window.height-64));
 			player.body._set_velocity((0,0));
 
 #globals
@@ -193,6 +200,7 @@ new_messages = [];
 username = "insert_username_here";
 key = "insert_oauth_key_here";
 t.twitch_connect(username, key);
+timeout = t.s.gettimeout()+0.1;
 
 #threads code
 t1 = threading.Thread(target=twitch_thread);
