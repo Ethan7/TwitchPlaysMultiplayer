@@ -21,6 +21,3 @@ Be sure to tell your twitch chat to use:
 "input:leftjump" to jump left
 "input:rightjump" to jump right
 "input:random" to move at a random speed in a random direction
-
-Bugs:
-	- Moving the objective directly onto the player causes a crash

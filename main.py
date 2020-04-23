@@ -29,8 +29,9 @@ def reset(arbiter, space, data):
 	objective.position = (window.width-objective.width, window.height-objective.height);
 	objective.body.position = objective.position;
 	for player in players.values():
-		player.body.position = (random.random(window.width-64), random.random(window.height-64));
+		player.body.position = (random.randrange(0, window.width-64), random.randrange(0, window.height-64));
 		player.body._set_velocity((0,0));
+		player.body._set_angle(0);
 	for obstacle in obstacles:
 		space.remove(obstacle.shape);
 		obstacle.kill();
@@ -87,11 +88,16 @@ class newLayer(cocos.layer.Layer):
 				player.body.sleep();
 				player.storedvx = dx;
 				player.storedvy = dy;
+				if(player.body.position.get_distance(objective.body.position) < 100):
+					player.mousemove = False;
+					player.body.activate();
+					player.body._set_velocity((player.storedvx*10, player.storedvy*10));
 		if objective.mousemove:
 			objective.position = (x, y);
 			objective.body.position = (x, y);
-			objective.storedvx = dx;
-			objective.storedvy = dy;
+			for player in players.values():
+				if(player.body.position.get_distance(objective.body.position) < 100):
+					objective.mousemove = False;
 	def on_mouse_release(self, x, y, buttons, modifiers):
 		if buttons == pyglet.window.mouse.LEFT:
 			for player in players.values():
@@ -103,7 +109,7 @@ class newLayer(cocos.layer.Layer):
 				objective.mousemove = False;
 		if buttons == pyglet.window.mouse.RIGHT:
 			obstacle = cocos.layer.util_layers.ColorLayer(0, 255, 0, 255, width=abs(x-self.newLeft), height=abs(y-self.newBottom));
-			obstacle.position = (self.newLeft, self.newBottom);
+			obstacle.position = (min(x, self.newLeft), min(y, self.newBottom));
 			game_scene.add(obstacle);
 			obstacle.shape = pymunk.Poly.create_box(space.static_body, size=(obstacle.width, obstacle.height));
 			obstacle.shape.elastivity = 0.8;
@@ -114,15 +120,16 @@ class newLayer(cocos.layer.Layer):
 	def on_key_press(self, symbol, modifiers):
 		if symbol == 32:
 			for player in players.values():
-				player.body.position = (random.random(window.width-64), random.random(window.height-64));
+				player.body.position = (random.randrange(0, window.width-64), random.randrange(0, window.height-64));
 				player.body._set_velocity((0,0));
+				player.body._set_angle(0);
 
 #add new player from twitch chat
 def create_user(user):
 	players[user] = playerSprite(user);
 	game_scene.add(players[user]);
 	game_scene.add(players[user].label);
-	players[user].body.position = (random.random(window.width-64), random.random(window.height-64));
+	players[user].body.position = (random.randrange(0, window.width-64), random.randrange(0, window.height-64));
 	space.add(players[user].shape, players[user].body);
 	handler.data[players[user].shape] = user; #store the name of the player inside the collision handler data
 
@@ -142,7 +149,7 @@ def game_input(user, input):
 	elif(input == "jumpright"):
 		players[user].body._set_velocity((200, 500));
 	elif(input == "random"):
-		players[user].body._set_velocity((random.randrange(-1000, 1000), random.random(1000)));
+		players[user].body._set_velocity((random.randrange(-1000, 1000), random.randrange(0,1000)));
 
 #handle twitch networking in separate thread to speed up performance
 def twitch_thread():
@@ -179,11 +186,12 @@ def update(dt):
 	space.step(dt);
 	for player in players.values():
 		player.position = player.body.position;
-		player.rotation = (player.body.angle*180.0)/math.pi; #convert radians to degrees
+		player.rotation = (player.body.angle*-180.0)/math.pi; #convert radians to degrees
 		player.label.position = (player.x, player.y+player.height);
 		if not bound_box.contains_vect(player.body.position):
-			player.body.position = (random.random(window.width-64), random.random(window.height-64));
+			player.body.position = (random.randrange(0, window.width-64), random.randrange(0, window.height-64));
 			player.body._set_velocity((0,0));
+			player.body._set_angle(0);
 
 #globals
 players = {};
@@ -236,8 +244,6 @@ objective.shape.elastivity = 0.0;
 objective.shape.friction = 0.0;
 objective.shape._set_collision_type(2);
 objective.body.position = objective.position;
-objective.storedvx = 0;
-objective.storedvy = 0;
 objective.mousemove = False;
 game_scene.add(objective);
 space.add(objective.shape, objective.body);
